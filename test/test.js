@@ -252,6 +252,28 @@ describe("multi build", function(){
 		});
 	});
 
+	it("doesn't include the traceur runtime if it's not being used", function(done){
+		rmdir(__dirname + "/simple-es6/dist", function(error){
+			if(error) {
+				return done(error);
+			}
+
+			multiBuild({
+				config: __dirname + "/simple-es6/config.js",
+				main: "main"
+			}, {
+				quiet: true
+			}).then(function(){
+				fs.readFile(__dirname + "/simple-es6/dist/bundles/main.js", function(error, contents){
+					assert.equal(error, null, "Able to open the file");
+					assert.equal(/\$traceurRuntime/.test(contents), false, 
+								 "Traceur not included");
+					done();
+				});
+			}).catch(done);
+		});
+	});
+
 	it("Should minify by default", function(done){
 		var config = {
 			config: __dirname + "/minify/config.js",
@@ -713,7 +735,9 @@ describe("pluginify", function(){
 			config: __dirname+"/stealconfig.js",
 			main: "pluginify/pluginify"
 		}, {
-			exports: {},
+			exports: {
+				'pluginify/global': 'globalModule'
+			},
 			quiet: true
 		}).then(function(pluginify){
 
@@ -726,6 +750,7 @@ describe("pluginify", function(){
 					find(browser,"RESULT", function(result){
 						assert(result.module.es6module, "have dependeny");
 						assert(result.cjs(), "cjs");
+						assert.equal(result.global, "This is a global module", "Global module loaded");
 						close();
 					}, close);
 
